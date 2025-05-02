@@ -1,7 +1,7 @@
-GPUS=(0 1 2 3 4 5 6 7)
+GPUS=(0 1 2 4 5 6 7)
 NUM_GPUS=${#GPUS[@]}
 model_name_or_path="Qwen/Qwen2.5-Math-7B-Instruct"
-dataset_name="olympiad_bench"
+dataset_name="amc23"
 dataset_path="FlippyDora/${dataset_name}"
 
 for i in "${!GPUS[@]}"; do

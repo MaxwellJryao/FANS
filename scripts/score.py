@@ -43,9 +43,14 @@ def main(args: Arguments):
         extracted_preds = []
         for i in range(len(result['preds'])):
             try:
+                if isinstance(result['gt'], list):
+                    result['gt'] = result['gt'][0]
+                result['gt'] = str(result['gt'])
                 score, extracted_pred = compute_score(result['preds'][i], result['gt'], return_preds=True)
                 if extracted_pred and extracted_pred[1]:
                     extracted_pred = extracted_pred[1][-1]
+                else:
+                    extracted_pred = result['preds'][i]
             except:
                 score = 0.
                 extracted_pred = result['preds'][i]
