@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from transformers import HfArgumentParser
 from datasets import load_dataset
 import json
+import utils
 
 @dataclass
 class Arguments:
@@ -32,11 +33,7 @@ def main(args: Arguments):
         ds = ds.select(range(min(args.dataset_end, len(ds))))
     print(f"Loaded {len(ds)} examples from {args.dataset_path} {args.dataset_split}")
 
-    local_start = args.local_rank * (len(ds) // args.num_workers)
-    if args.local_rank != args.num_workers - 1:
-        local_end = local_start + (len(ds) // args.num_workers)
-    else:
-        local_end = len(ds)
+    local_start, local_end = utils.alloc_data(args.local_rank, args.num_workers, len(ds))
     ds = ds.select(range(local_start, local_end))
     print(f"Rank {args.local_rank} processing {len(ds)} examples from {local_start} to {local_end}")
 

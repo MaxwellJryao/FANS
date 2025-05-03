@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from vllm import LLM, SamplingParams
 import json
 import re
+import utils
 
 @dataclass
 class Arguments:
@@ -13,7 +14,10 @@ class Arguments:
     gpu_memory_utilization: float = field(default=0.8)
 
     max_new_tokens: int = field(default=8192)
-
+    temperature: float = field(default=0.6)
+    top_p: float = field(default=0.95)
+    max_model_len: int = field(default=16384)
+    
     result_dir: str = field(default="results")
     dataset_name: str = field(default="amc23")
     model_name_or_path: str = field(default="Qwen/Qwen2.5-Math-1.5B-Instruct")
@@ -51,7 +55,7 @@ def extract_proof(outputs):
     if matches:
         return matches[-1]
     else:
-        return outputs
+        return ''
 
 def main(args: Arguments):
     torch.manual_seed(args.seed)
@@ -59,16 +63,12 @@ def main(args: Arguments):
     with open(result_file, 'r', encoding='utf-8') as f:
         results = json.load(f)
 
-    local_start = args.local_rank * (len(results) // args.num_workers)
-    if args.local_rank != args.num_workers - 1:
-        local_end = local_start + (len(results) // args.num_workers)
-    else:
-        local_end = len(results)
+    local_start, local_end = utils.alloc_data(args.local_rank, args.num_workers, len(results))
     results = results[local_start:local_end]
 
     tokenizer = AutoTokenizer.from_pretrained(args.prover_model_name_or_path)
 
-    model = LLM(args.prover_model_name_or_path, tensor_parallel_size=args.tensor_parallel_size, gpu_memory_utilization=args.gpu_memory_utilization)
+    model = LLM(args.prover_model_name_or_path, tensor_parallel_size=args.tensor_parallel_size, gpu_memory_utilization=args.gpu_memory_utilization, max_model_len=args.max_model_len)
 
     prompts = []    
     for result in results:
@@ -81,7 +81,7 @@ def main(args: Arguments):
             inputs = tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt=True)
             prompts.append(inputs)
 
-    sampling_params = SamplingParams(temperature=0.6, top_p=0.95, max_tokens=args.max_new_tokens)
+    sampling_params = SamplingParams(temperature=args.temperature, top_p=args.top_p, max_tokens=args.max_new_tokens)
     outputs = model.generate(prompts, sampling_params=sampling_params)
 
     for i, result in enumerate(results):

@@ -3,6 +3,7 @@ from transformers import AutoTokenizer
 from dataclasses import dataclass, field
 from transformers import HfArgumentParser
 import json
+import utils
 
 @dataclass
 class Arguments:
@@ -12,6 +13,10 @@ class Arguments:
     result_dir: str = field(default="results")
     dataset_name: str = field(default="amc23")
     model_name_or_path: str = field(default="Qwen/Qwen2.5-Math-1.5B-Instruct")
+
+    temperature: float = field(default=0.6)
+    top_p: float = field(default=0.95)
+    max_new_tokens: int = field(default=2048)
 
     num_workers: int = field(default=1)
     local_rank: int = field(default=0)
@@ -27,11 +32,7 @@ def main(args: Arguments):
     with open(result_file, 'r', encoding='utf-8') as f:
         results = json.load(f)
 
-    local_start = args.local_rank * (len(results) // args.num_workers)
-    if args.local_rank != args.num_workers - 1:
-        local_end = local_start + (len(results) // args.num_workers)
-    else:
-        local_end = len(results)
+    local_start, local_end = utils.alloc_data(args.local_rank, args.num_workers, len(results))
     results = results[local_start:local_end]
 
     tokenizer = AutoTokenizer.from_pretrained(args.translate_model_name_or_path, trust_remote_code=True)
@@ -53,7 +54,7 @@ def main(args: Arguments):
             )
             prompts.append(text)
 
-    sampling_params = SamplingParams(temperature=0.6, top_p=0.95, max_tokens=2048)
+    sampling_params = SamplingParams(temperature=args.temperature, top_p=args.top_p, max_tokens=args.max_new_tokens)
     outputs = model.generate(prompts, sampling_params=sampling_params)
 
     for i, result in enumerate(results):

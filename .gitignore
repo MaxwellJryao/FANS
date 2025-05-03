@@ -1,2 +1,5 @@
-results/
+results/*
+!results/upload.sh
 scripts/example.py
+
+__pycache__/

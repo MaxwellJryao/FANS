@@ -1,7 +1,7 @@
-GPUS=(0 1 2 3 4 5 6 9)
+GPUS=(0 1 2 3 4 5 6 7 8 9)
 NUM_GPUS=${#GPUS[@]}
 translate_model_name_or_path="AI-MO/Kimina-Autoformalizer-7B"
-dataset_name="aime24"
+dataset_name="olympiad_bench"
 model_name_or_path="Qwen/Qwen2.5-Math-1.5B-Instruct"
 result_dir="results"
 

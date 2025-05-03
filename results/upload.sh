@@ -1,0 +1,1 @@
+huggingface-cli upload-large-folder ScaleML-FANS/FANS-data --repo-type=dataset results --exclude "*.sh"
